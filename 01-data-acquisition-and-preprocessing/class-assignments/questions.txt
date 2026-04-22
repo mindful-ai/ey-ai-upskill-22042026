@@ -1,0 +1,39 @@
+🔹 Q1. Basic Exploration
+----------------------------------------------------------------------
+Find:
+
+Total number of records
+
+Number of columns
+
+Data types of each column
+
+🔹 Q2. Salary Distribution
+----------------------------------------------------------------------
+
+How many people earn >50K vs <=50K?
+
+What is the percentage of high earners?
+
+🔹 Q3. Average Age by Education Level
+----------------------------------------------------------------------
+
+Find the average age for each education category
+
+Which education level has the highest average age?
+
+🔹 Q4. Working Hours Analysis
+----------------------------------------------------------------------
+
+What is the average hours-per-week worked?
+
+Who works more hours on average: Male or Female?
+
+🔹 Q5. Capital Gain Insights
+----------------------------------------------------------------------
+
+What is the maximum capital-gain?
+
+How many people have capital-gain > 0?
+
+Do high earners (>50K) have higher average capital gain?
