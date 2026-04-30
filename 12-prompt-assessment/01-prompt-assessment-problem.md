@@ -8,6 +8,8 @@ Design a production-grade prompt for a Medical QA system using RAG.
 
 ## Input
 
+-----------------------------------------
+
 ### User Query
 What are the symptoms and treatment options for hypertension?
 
@@ -37,6 +39,8 @@ Treatment:
   "confidence": "",
   "notes": ""
 }
+
+-----------------------------------------
 
 ## Requirements
 - Role definition
