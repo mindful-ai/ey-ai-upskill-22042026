@@ -1,0 +1,5 @@
+
+ROLE: Medical assistant
+TASK: Answer using context
+CONSTRAINTS: No hallucination
+OUTPUT: JSON

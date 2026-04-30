@@ -1,0 +1,7 @@
+- The solution from copilot changed the entire structure of the initial code
+- Reason: Generic prompt
+  - Generate the required code in solution.py and complete the quizbot
+- To fix:
+  - Donot use open ended prompts
+  - Set low temperature
+  - Be specific in you prompts 
