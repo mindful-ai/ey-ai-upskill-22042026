@@ -1,6 +1,3 @@
-from datetime import datetime
-
-# Prompts
 from langchain_core.prompts import (
     ChatPromptTemplate,
     PromptTemplate,
@@ -8,233 +5,163 @@ from langchain_core.prompts import (
     AIMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
+from datetime import datetime
+from langchain_openai import OpenAI
 
-# Models (OpenAI integration moved out)
+
+# from langchain_core.output_parsers import DatetimeOutputParser
 from langchain_openai import ChatOpenAI
 
-# Output parsing helper (DatetimeOutputParser not available in some langchain versions)
-def parse_date(text):
-    """Parse a date string into a datetime.datetime.
 
-    Tries dateutil.parser if available, then ISO, then common human formats.
-    Raises ValueError if unable to parse.
-    """
-    text = text.strip().strip('"')
-    # Try dateutil if installed
-    try:
-        from dateutil import parser as _dparser
-        dt = _dparser.parse(text, default=datetime(1, 1, 1))
-        # normalize
-        return dt.replace(tzinfo=None)
-    except Exception:
-        pass
+key_path = r"E:\Lenovo Ideapad 330\company-material\ai-upskill-3\key-vault\openai\ne-openai-api-key.txt"
+f = open(key_path)
+apikey = f.read().strip()
+f.close()
 
-    # Try ISO format
-    try:
-        return datetime.fromisoformat(text)
-    except Exception:
-        pass
+llm = ChatOpenAI(openai_api_key=apikey, temperature=0)
 
-    # Common formats
-    for fmt in ("%B %d, %Y", "%b %d, %Y", "%Y-%m-%d", "%d %B %Y", "%d %b %Y"):
-        try:
-            return datetime.strptime(text, fmt)
-        except Exception:
-            continue
 
-    # Last resort: extract numbers like YYYY, M, D
-    import re
-    m = re.search(r"(\d{4}).*?(\d{1,2}).*?(\d{1,2})", text)
-    if m:
-        y, a, b = m.groups()
-        y = int(y)
-        a = int(a)
-        b = int(b)
-        # assume order is Year-Month-Day if plausible
-        try:
-            if 1 <= a <= 12 and 1 <= b <= 31:
-                return datetime(y, a, b)
-        except Exception:
-            pass
-
-    raise ValueError(f"Unable to parse date: {text}")
-
-# LLM client creation (reads API key if available)
-from langchain_openai import OpenAI as LangChainOpenAI
-
-try:
-    with open(r"E:\Lenovo Ideapad 330\company-material\ai-upskill-2\key-vault\openai\ne-openai-api-key.txt") as f:
-        apikey = f.read().strip()
-    llm = LangChainOpenAI(api_key=apikey)
-except Exception:
-    llm = None
+import re
+from typing import Optional
 
 
 class HistoryQuiz():
-    """History quiz bot that can use an LLM to generate questions and answers.
-
-    If an LLM isn't available, some methods fall back to deterministic mappings.
-    """
-
-    def create_history_question(self, topic):
+    
+    def create_history_question(self,topic):
         '''
         This method should output a historical question about the topic that has a date as the correct answer.
         For example:
-
+        
             "On what date did World War 2 end?"
-
-        The method returns a single question string. Uses LLM when available.
+            
         '''
-        prompt = (
-            "Generate a single concise historical trivia question about '{topic}' "
-            "whose answer is a specific calendar date. Return ONLY the question sentence."
-        ).format(topic=topic)
-
-        if llm is None:
-            # Fallback: simple templated question
-            question = f"On what date did {topic} end?"
-            return question
-
-        resp = self._call_llm(prompt)
-        question = resp.strip().strip('"')
-        return question
-
-    def get_AI_answer(self, question):
-        '''
-        This method gets the answer to the historical question from an LLM.
-        The returned value is a `datetime.datetime` object.
-        '''
-        prompt = (
-            f"Answer the following historical question and return ONLY the date in the format 'Month D, YYYY'.\n\n{question}"
+        # Use LangChain PromptTemplate to generate a clear question string
+        prompt = PromptTemplate(
+            input_variables=["topic"],
+            template="On what date did {topic} occur?"
         )
+        question = prompt.format(topic=topic)
+        return question
+    
+    def get_AI_answer(self,question):
+        '''
+        This method should get the answer to the historical question from the method above.
+        Note: This answer must be in datetime format! Use DateTimeOutputParser to confirm!
+        
+        September 2, 1945 --> datetime.datetime(1945, 9, 2, 0, 0)
+        '''
+        # Ask a chat model to answer with a single ISO date (YYYY-MM-DD).
+        system = SystemMessagePromptTemplate.from_template(
+            "You are a historian. Answer with a single date in ISO format YYYY-MM-DD. Reply with the date only, nothing else."
+        )
+        human = HumanMessagePromptTemplate.from_template("{question}")
+        chat_prompt = ChatPromptTemplate.from_messages([system, human])
 
-        if llm is None:
-            # Fallback deterministic mapping
-            mapping = {
-                'world war 2': datetime(1945, 9, 2),
-                'world war ii': datetime(1945, 9, 2),
-                'world war 1': datetime(1918, 11, 11),
-                'american civil war': datetime(1865, 4, 9),
-            }
-            q_lower = question.lower()
-            for key, dt in mapping.items():
-                if key in q_lower:
-                    return dt
-            raise ValueError(f"No fallback mapping for question: {question}")
-
-        resp = self._call_llm(prompt)
-
-        # Try to parse using the helper that uses dateutil and common formats
         try:
-            return parse_date(resp)
-        except Exception:
-            raise ValueError(f"Unable to parse date from LLM response: {resp}")
+            prompt = chat_prompt.format_prompt(question=question)
+            messages = prompt.to_messages()
+            text = None
+            # Prefer .generate when available (returns structured generations)
+            if hasattr(llm, "generate"):
+                try:
+                    result = llm.generate([messages])
+                    gens = getattr(result, "generations", None)
+                    if gens:
+                        # gens is a list of lists
+                        text = gens[0][0].text
+                    else:
+                        # Try alternative attribute
+                        text = str(result)
+                except Exception:
+                    text = None
 
-    def get_user_answer(self, question):
-        '''
-        This method grabs a user answer and converts it to datetime. It collects Year, Month, and Day via input().
-        '''
-        print(question)
-        while True:
+            # Fallback to calling the model if callable
+            if text is None and callable(llm):
+                try:
+                    response = llm(messages)
+                    # Response may be an AIMessage or similar
+                    if hasattr(response, "content"):
+                        text = response.content
+                    elif hasattr(response, "generations"):
+                        text = response.generations[0][0].text
+                    else:
+                        text = str(response)
+                except Exception:
+                    text = None
+
+            if not text:
+                print("Warning: LLM did not return text or is not configured for local use.")
+                return None
+
+            # Find ISO-like date in the response
+            m = re.search(r"(\d{4}-\d{2}-\d{2})", text)
+            if m:
+                iso = m.group(1)
+                try:
+                    correct_datetime = datetime.fromisoformat(iso)
+                    return correct_datetime
+                except Exception:
+                    pass
+
+            # Fallback: try to parse with DatetimeOutputParser if available
             try:
-                year = int(input('Enter year (e.g. 1945): ').strip())
-                month = int(input('Enter month (1-12): ').strip())
-                day = int(input('Enter day (1-31): ').strip())
-                user_datetime = datetime(year, month, day)
-                return user_datetime
-            except ValueError:
-                print('Invalid date or input. Please try again.')
+                parser = DatetimeOutputParser()
+                parsed = parser.parse(text)
+                if isinstance(parsed, datetime):
+                    return parsed
+            except Exception:
+                pass
 
-    def check_user_answer(self, user_answer, ai_answer):
+        except Exception as e:
+            print("Warning: LLM call failed or not configured:", e)
+
+        return None
+    
+    def get_user_answer(self,question):
         '''
-        Check the user answer against the AI answer and return the absolute timedelta difference.
+        This method should grab a user answer and convert it to datetime. It should collect a Year, Month, and Day.
+        You can just use input() for this.
         '''
-        if not isinstance(user_answer, datetime) or not isinstance(ai_answer, datetime):
-            raise TypeError('Both answers must be datetime.datetime instances')
-
-        delta = user_answer - ai_answer
-        days_diff = abs(delta.days)
-        hours_diff = abs(delta.seconds) // 3600
-        message = f"Difference: {days_diff} days and {hours_diff} hours."
-        if days_diff == 0 and hours_diff == 0:
-            message = "Exact match!"
-        print(message)
-        return abs(delta)
-
-    def _call_llm(self, prompt_text):
-        """Call the configured LLM with a prompt, trying several call styles for compatibility."""
-        if llm is None:
-            raise RuntimeError('LLM client not configured')
-
-        # Try calling the llm in a few common ways and extract text
+        # Ask the user for a date in ISO format for simplicity
+        prompt = f"{question}\nPlease enter the answer date in YYYY-MM-DD format: "
+        s = input(prompt)
         try:
-            out = llm(prompt_text)
-            if isinstance(out, str):
-                return out
+            user_datetime = datetime.fromisoformat(s.strip())
+            return user_datetime
         except Exception:
-            pass
+            print("Invalid date format. Expected YYYY-MM-DD. Returning None.")
+            return None
+        
+        
+    def check_user_answer(self,user_answer,ai_answer):
+        '''
+        Should check the user answer against the AI answer and return the difference between them
+        '''
+        if user_answer is None:
+            print("No valid user answer to check.")
+            return None
+        if ai_answer is None:
+            print("No AI answer available to check against.")
+            return None
 
-        try:
-            out = llm.predict(prompt_text)
-            if isinstance(out, str):
-                return out
-        except Exception:
-            pass
-
-        try:
-            out = llm.generate([prompt_text])
-            if hasattr(out, 'generations'):
-                first = out.generations[0][0].text
-                return first
-            if hasattr(out, 'choices'):
-                return out.choices[0].text
-        except Exception:
-            pass
-
-        raise RuntimeError('Failed to call LLM with available methods')
-
-
-def test_quiz_bot(use_llm=True):
-    quiz_bot = HistoryQuiz()
-    question = quiz_bot.create_history_question(topic='World War 2')
-    ai_answer = None
-    try:
-        ai_answer = quiz_bot.get_AI_answer(question)
-    except Exception as e:
-        if not use_llm:
-            raise
-        print('LLM failed to answer; test will attempt fallback if available:', e)
-
-    if ai_answer is None:
-        # Try fallback deterministic mapping via get_AI_answer with llm disabled
-        global llm
-        saved = llm
-        llm = None
-        ai_answer = quiz_bot.get_AI_answer(question)
-        llm = saved
-
-    # simulate a user answer identical to AI answer
-    user_answer = datetime(ai_answer.year, ai_answer.month, ai_answer.day)
-    diff = quiz_bot.check_user_answer(user_answer, ai_answer)
-    assert diff.days == 0, 'Test failed: expected zero difference'
-    print('Automated test passed: user answer matches AI answer')
+        # Compute absolute difference in days
+        diff = abs((user_answer - ai_answer).days)
+        print(f"Difference between user answer and AI answer: {diff} day(s)")
+        return diff
 
 
 if __name__ == "__main__":
-    quiz_bot = HistoryQuiz()
-    question = quiz_bot.create_history_question(topic='World War 2')
-    print('\nQuestion: ', question)
+    # Simple example quiz flow
+    hq = HistoryQuiz()
+    topic = "the end of World War 2"
+    question = hq.create_history_question(topic)
+    print("Question:", question)
 
-    try:
-        ai_answer = quiz_bot.get_AI_answer(question)
-        print('AI (correct) answer:', ai_answer.date())
-    except Exception as e:
-        print('Failed to get AI answer:', e)
-        ai_answer = None
+    ai_dt = hq.get_AI_answer(question)
+    print("AI answer (datetime):", ai_dt)
 
-    if ai_answer is not None:
-        user_answer = quiz_bot.get_user_answer(question)
-        quiz_bot.check_user_answer(user_answer, ai_answer)
+    user_dt = hq.get_user_answer(question)
+    print("User answer (datetime):", user_dt)
 
-    print('\nRunning automated self-test...')
-    test_quiz_bot()
+    hq.check_user_answer(user_dt, ai_dt)
+        
