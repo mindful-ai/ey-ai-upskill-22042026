@@ -1,0 +1,8 @@
+Upgrade the code to handle the following query:
+
+
+You: what is the current date and time?
+ChatBot: Since I don't have real-time access, I can only provide the current date based on the information given earlier. 
+
+The current day is Thursday, but I don't know the exact date or time. If you provide me with the month and year, I can try to help you determine the current date.
+
