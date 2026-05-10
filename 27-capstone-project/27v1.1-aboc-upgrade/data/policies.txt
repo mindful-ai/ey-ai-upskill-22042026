@@ -1,0 +1,5 @@
+All purchases must be under 500000 INR.
+
+Only VendorA, VendorB, VendorC are allowed.
+
+Large purchases require approval.
