@@ -1,0 +1,4 @@
+- Study the built-in pickle module in python
+- How to use pickle module long-term memory
+- HINT: serialize the messages[] in the Agent State and store/retrieve using pickle
+- Study and list the techniques for adding long term memory to the Agentic systems commnly practiced in the industry
