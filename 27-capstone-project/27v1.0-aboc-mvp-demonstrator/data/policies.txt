@@ -1,0 +1,5 @@
+All purchases must be under 500000 INR for auto approval.
+
+Only approved vendors (VendorA, VendorB, VendorC) are allowed.
+
+Any purchase above threshold requires manual approval.
