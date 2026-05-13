@@ -1,0 +1,11 @@
+uvicorn mcp_server:app --reload
+
+Powershell:
+curl -X POST "http://127.0.0.1:8000/chat" `
+-H "Content-Type: application/json" `
+-d '{"user_input": "What is the weather in Mysore?"}'
+
+Command Shell Windows:
+curl -X POST "http://127.0.0.1:8000/chat" ^
+-H "Content-Type: application/json" ^
+-d "{\"user_input\": \"What is the weather in Bangalore?\"}"

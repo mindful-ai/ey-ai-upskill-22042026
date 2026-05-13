@@ -1,0 +1,31 @@
+Running db-graph-parallel.py gives the following output:
+
+======================
+USER: List all users
+FINAL RESULT:
+[["ML001", "Raj", 1], ["ML002", "Ram", 1], ["ML200", "Alice", 1], ["ML003", "Sham", 1]]
+
+ERROR: Unknown action
+
+======================
+USER: List all users
+FINAL RESULT:
+[["ML001", "Raj", 1], ["ML002", "Ram", 1], ["ML200", "Alice", 1], ["ML003", "Sham", 1]]
+
+USER: List all users
+FINAL RESULT:
+[["ML001", "Raj", 1], ["ML002", "Ram", 1], ["ML200", "Alice", 1], ["ML003", "Sham", 1]]
+
+[["ML001", "Raj", 1], ["ML002", "Ram", 1], ["ML200", "Alice", 1], ["ML003", "Sham", 1]]
+
+======================
+USER: Show analytics of users
+FINAL RESULT:
+{
+  "count": "4",
+  "list": "[[\"ML001\", \"Raj\", 1], [\"ML002\", \"Ram\", 1], [\"ML200\", \"Alice\", 1], [\"ML003\", \"Sham\", 1]]",
+  "search": "[[\"ML001\", \"Raj\", 1], [\"ML002\", \"Ram\", 1], [\"ML200\", \"Alice\", 1], [\"ML003\", \"Sham\", 1]]"
+}
+
+
+Fix the Unknown Action issue for add user functionality
